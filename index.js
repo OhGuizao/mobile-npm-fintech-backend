@@ -14,7 +14,7 @@ const bcrypt = require("bcrypt");
 //Importação do json web token
 //Pay-load -> chave-secreta | tempo de expiração | método de criptografia
 const jwt = require("jsonwebtoken");
-const {request} = require("express");
+const { request } = require("express");
 const cfn = require("./confSenha");
 const { jwt_expires, jwt_key } = require("./confSenha")
 
@@ -32,18 +32,15 @@ const tableCliente = mongoose.Schema({
     idadeCliente: { type: String, require: true },
     emailCliente: { type: String, require: true, unique: true },
     cpfCliente: { type: String, require: true, unique: true },
-    usuarioCliente: { type: String, require: true, unique: true },
     senhaCliente: { type: String, require: true }
 });
 
 //Junto ao cadastro, o bcrypt irá criptografar o campo da senha através desse código(  pre("save").  ).
 tableCliente.pre('save', function (next) {
     let cliente = this;
-    if (!cliente.isModified('senhaCliente'))
-        return next()
+    if (!cliente.isModified('senhaCliente')) return next()
     bcrypt.hash(cliente.senhaCLiente, 10, (erro, resultCryp) => {
-        if (erro)
-            return console.log(`Erro ao gerar a senha ->${erro}`);
+        if (erro) return console.log(`Erro ao gerar a senha ->${erro}`);
         cliente.senhaCliente = resultCryp;
         return next();
     })
@@ -97,30 +94,30 @@ appExpress.get("/apimazebank/cliente/", (_req, res) => {
 });
 
 // ----------> POST
-appExpress.post("/apimazebank/cliente/cadastro"), (req, res) => {
+appExpress.post("/apimazebank/cliente/cadastro", (req, res) => {
     const cliente = new Cliente(req.body);
     cliente.save().then(() => {
         const gerado = criaToken(req.body, res.body.nome);
         res.status(201).send({ mensagem: `Cliente cadastrado`, token: gerado })
     })
         .catch((erro) => res.status(400).send({ mensagem: `Erro ao tentar cadastrar o cliente`, mensagem: erro }))
-}
+});
 appExpress.post("/apimazebank/cliente/login", (res, req) => {
-    const user = req.body.usuario;
-    const pw = req.body.senha;
-    Cliente.findOne({ usuario: user }, (erro, dados) => {
+    const cpf = req.body.cpfCliente;
+    const pw = req.body.senhaCliente;
+    Cliente.findOne({ cpfCliente: cpf }, (erro, dados) => {
         if (erro) {
             return res.status(400).send({ mensagem: `Usuário não encontrado:${erro}` })
         }
-        bcrypt.compare(pw, dados.senha, (erro, igual) => {
+        bcrypt.compare(pw, dados.senhaCliente, (erro, igual) => {
             if (erro) return res.status(400).send({ mensagem: `erro ao tentar logar:${erro}` });
             if (!igual) return res.status(400).send({ mensagem: `erro ao tentar logar:${erro}` });
-            const gerado = criaToken(dados.usuario, dados.nome);
+            const gerado = criaToken(dados.cpfCliente, dados.cpfCliente);
             res.status(200).send({ mensagem: `Logado`, token: gerado, payload: dados });
 
         });
     })
-})
+});
 // ----------> PUT
 appExpress.put("api/cliente/atualizar/:id", (req, res) => {
     Cliente.findByIdAndUpdate(req.params.id, req.body, (erro, _dados) => {
@@ -144,8 +141,8 @@ appExpress.delete("apimazebank/cliente/deletar/:id", (req, res) => {
 
 
 //Teste do jsonwebtoken, que cria um token e envia ao lugar de destino
-const criaToken = (usuario, nome) => {
-    return jwt.sign({ usuario: usuario, nome: nome }, cfn.jwt_key, { expiresIn: cfn.jwt_expires });
+const criaToken = (cpfCliente, nome) => {
+    return jwt.sign({ cpfCliente: cpfCliente, nome: nome }, cfn.jwt_key, { expiresIn: cfn.jwt_expires });
 }
 
 
