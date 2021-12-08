@@ -39,7 +39,7 @@ const tableCliente = mongoose.Schema({
 tableCliente.pre('save', function (next) {
     let cliente = this;
     if (!cliente.isModified('senhaCliente')) return next()
-    bcrypt.hash(cliente.senhaCLiente, 10, (erro, resultCryp) => {
+    bcrypt.hash(cliente.senhaCliente, 10, (erro, resultCryp) => {
         if (erro) return console.log(`Erro ao gerar a senha ->${erro}`);
         cliente.senhaCliente = resultCryp;
         return next();
@@ -84,7 +84,7 @@ Abaixo, iremos criar as 4 rotas para os verbos GET, POST, PUT, DELETE:
     E ao final das rotas iremos aplicar ao servidor, uma porta de comunicação, no nosso caso será a porta 3000(porta padrão).
 */
 // ----------> MÉTODO GET
-appExpress.get("/apimazebank/cliente/", (_req, res) => {
+appExpress.get("/apimazebank/cliente/", (req, res) => {
     Cliente.find((erro, dados) => {
         if (erro) {
             return res.status(400).send({ mensagem: `Erro ao tentar ler o cliente: ${erro}` });
@@ -97,12 +97,13 @@ appExpress.get("/apimazebank/cliente/", (_req, res) => {
 appExpress.post("/apimazebank/cliente/cadastro", (req, res) => {
     const cliente = new Cliente(req.body);
     cliente.save().then(() => {
-        const gerado = criaToken(req.body, res.body.nome);
-        res.status(201).send({ mensagem: `Cliente cadastrado`, token: gerado })
+        return res.send(cliente);
+        //const gerado = criaToken(req.body, res.body.nome);
+        res.status(201).send({ mensagem: `Cliente cadastrado`})
     })
         .catch((erro) => res.status(400).send({ mensagem: `Erro ao tentar cadastrar o cliente`, mensagem: erro }))
 });
-appExpress.post("/apimazebank/cliente/login", (res, req) => {
+appExpress.post("/apimazebank/cliente/login", (req, res) => {
     const cpf = req.body.cpfCliente;
     const pw = req.body.senhaCliente;
     Cliente.findOne({ cpfCliente: cpf }, (erro, dados) => {
@@ -119,7 +120,7 @@ appExpress.post("/apimazebank/cliente/login", (res, req) => {
     })
 });
 // ----------> PUT
-appExpress.put("api/cliente/atualizar/:id", (req, res) => {
+appExpress.put("apimazebank/cliente/atualizar/:id", (req, res) => {
     Cliente.findByIdAndUpdate(req.params.id, req.body, (erro, _dados) => {
         if (erro) {
             return res.status(400).send({ mensagem })
